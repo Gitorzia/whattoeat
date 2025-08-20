@@ -1,8 +1,10 @@
 const CACHE_NAME = 'whattoeat-cache-v1';
 const ASSETS = [
+  './index.html',
   './whattoeat.html',
   './manifest.webmanifest',
-  './service-worker.js'
+  './service-worker.js',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {

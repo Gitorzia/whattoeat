@@ -4,7 +4,9 @@ const ASSETS = [
   './whattoeat.html',
   './manifest.webmanifest',
   './service-worker.js',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,0 +1,10 @@
+{
+  "name": "今天吃什么",
+  "short_name": "吃什么",
+  "description": "随机轮播并可自定义的吃什么决策器",
+  "start_url": "./whattoeat.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a"
+} 

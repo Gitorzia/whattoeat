@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今天吃什么</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="吃什么" />
+  <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22c55e;
+      --accent-2: #3b82f6;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 50% -200px, #1f2937, var(--bg));
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: min(920px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .title .dot {
+      width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+      animation: pulse 1.4s infinite ease-in-out;
+    }
+    @keyframes pulse { 0%,100%{ transform: scale(1); opacity: .9 } 50%{ transform: scale(1.25); opacity: 1 } }
+
+    .display {
+      padding: 48px 24px 24px;
+      display: grid;
+      gap: 18px;
+      text-align: center;
+    }
+    .screen {
+      background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 26px 18px;
+      min-height: 160px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .screen::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: radial-gradient(600px 200px at 50% -120px, rgba(255,255,255,0.08), transparent 60%);
+      pointer-events: none;
+    }
+    #currentItem {
+      font-size: clamp(28px, 6vw, 56px);
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+    }
+    button {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: .2px;
+      cursor: pointer;
+      transition: transform .05s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    button:hover { border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.08); }
+    button:active { transform: translateY(1px); }
+    .primary { border-color: rgba(34,197,94,.45); box-shadow: 0 0 0 2px rgba(34,197,94,.15) inset; }
+    .blue { border-color: rgba(59,130,246,.45); box-shadow: 0 0 0 2px rgba(59,130,246,.15) inset; }
+    .warn { border-color: rgba(245,158,11,.45); box-shadow: 0 0 0 2px rgba(245,158,11,.15) inset; }
+    .danger { border-color: rgba(239,68,68,.45); box-shadow: 0 0 0 2px rgba(239,68,68,.15) inset; }
+
+    .footer {
+      padding: 12px 18px; color: var(--muted); font-size: 12px; text-align: center;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.0));
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; display: none; place-items: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(2px);
+    }
+    .modal {
+      width: min(720px, 92%);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .modal-title { font-weight: 700; }
+    .close { background: transparent; border: 1px solid rgba(255,255,255,0.14); }
+
+    .add-row { display: flex; gap: 10px; margin: 8px 0 14px; }
+    .add-row input {
+      flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25); color: var(--text);
+    }
+    .list {
+      max-height: 340px; overflow: auto; display: grid; gap: 8px; padding-right: 2px;
+    }
+    .item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    }
+    .item-name { font-weight: 600; }
+    .empty { color: var(--muted); text-align: center; padding: 16px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="app-header">
+      <div class="title"><span class="dot"></span>今天吃什么</div>
+      <div style="font-size:12px;color:var(--muted)">每秒 15 次切换 · 随机起始 · 可洗牌与自定义</div>
+    </div>
+
+    <div class="display">
+      <div class="screen">
+        <div id="currentItem">加载中…</div>
+      </div>
+      <div class="controls">
+        <button id="startBtn" class="primary">开始</button>
+        <button id="pauseBtn" class="warn">暂停</button>
+        <button id="shuffleBtn" class="blue">洗牌</button>
+        <button id="customBtn">自定义</button>
+      </div>
+    </div>
+
+    <div class="footer">提示：开始后以顺序快速切换；洗牌将打乱当前顺序；自定义可添加/删除备选项。</div>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">自定义备选项</div>
+        <button id="closeModal" class="close">关闭</button>
+      </div>
+      <div class="add-row">
+        <input id="addInput" type="text" placeholder="输入要添加的名称，例如：螺蛳粉" />
+        <button id="addBtn" class="primary">添加</button>
+        <button id="clearBtn" class="danger">清空全部</button>
+      </div>
+      <div id="list" class="list"></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const DEFAULT_ITEMS = [
+        "炸鸡",
+        "混沌",
+        "饺子",
+        "汤圆",
+        "西红柿鸡蛋面",
+        "茄子牛肉盖饭",
+        "牛肉青菜方便面",
+        "肉卷白菜方便面",
+        "意大利面",
+        "pasta",
+        "寿司",
+        "日本拉面",
+        "石锅拌饭",
+        "卤肉饭",
+        "taco",
+        "huel",
+        "希腊烤肉卷饼",
+        "法棍沙拉",
+        "wrap",
+        "炒牛河",
+        "酸甜鸡肉饭",
+        "肉夹馍",
+        "炸鱼薯条",
+        "披萨",
+        "法国菜",
+        "越南米粉",
+        "泰餐",
+        "印度拌饭",
+        "麦当劳"
+      ];
+
+      const STORAGE_KEY = 'whattoeat.items.v1';
+      const TICK_MS = 1000 / 15; // 每秒 15 次
+
+      let items = loadItems();
+      let currentIndex = items.length > 0 ? Math.floor(Math.random() * items.length) : -1; // 随机起始
+      let timerId = null;
+
+      const elCurrent = document.getElementById('currentItem');
+      const elStart = document.getElementById('startBtn');
+      const elPause = document.getElementById('pauseBtn');
+      const elShuffle = document.getElementById('shuffleBtn');
+      const elCustom = document.getElementById('customBtn');
+      const elBackdrop = document.getElementById('modalBackdrop');
+      const elClose = document.getElementById('closeModal');
+      const elList = document.getElementById('list');
+      const elAddInput = document.getElementById('addInput');
+      const elAddBtn = document.getElementById('addBtn');
+      const elClearBtn = document.getElementById('clearBtn');
+
+      function loadItems() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [...DEFAULT_ITEMS];
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.every(x => typeof x === 'string')) {
+            return parsed.length > 0 ? parsed : [...DEFAULT_ITEMS];
+          }
+        } catch (_) {}
+        return [...DEFAULT_ITEMS];
+      }
+      function saveItems() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      }
+
+      function renderCurrent() {
+        if (items.length === 0) {
+          elCurrent.textContent = '请添加备选项';
+          return;
+        }
+        if (currentIndex < 0) currentIndex = 0;
+        currentIndex = currentIndex % items.length;
+        elCurrent.textContent = items[currentIndex];
+      }
+
+      function tick() {
+        if (items.length === 0) return;
+        currentIndex = (currentIndex + 1) % items.length;
+        renderCurrent();
+      }
+
+      function start() {
+        if (timerId !== null) return; // 已经在运行
+        if (items.length === 0) return;
+        timerId = setInterval(tick, TICK_MS);
+      }
+
+      function pause() {
+        if (timerId !== null) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+
+      function shuffleInPlace(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+      }
+
+      function shuffle() {
+        if (items.length <= 1) return;
+        const currentItem = items[currentIndex];
+        shuffleInPlace(items);
+        // 尽量保持当前展示不变：找到同名元素的新索引
+        const idx = items.indexOf(currentItem);
+        currentIndex = idx >= 0 ? idx : 0;
+        saveItems();
+        renderList();
+        renderCurrent();
+      }
+
+      function openModal() { elBackdrop.style.display = 'grid'; elAddInput.focus(); }
+      function closeModal() { elBackdrop.style.display = 'none'; }
+
+      function addItem() {
+        const name = (elAddInput.value || '').trim();
+        if (!name) return;
+        items.push(name);
+        saveItems();
+        elAddInput.value = '';
+        // 如果之前为空，重设 currentIndex
+        if (items.length === 1) currentIndex = 0;
+        renderList();
+        renderCurrent();
+      }
+
+      function deleteItem(index) {
+        if (index < 0 || index >= items.length) return;
+        const deletingBeforeCurrent = index < currentIndex;
+        const deletingCurrent = index === currentIndex;
+        items.splice(index, 1);
+        if (items.length === 0) {
+          pause();
+          currentIndex = -1;
+        } else {
+          if (deletingBeforeCurrent) currentIndex -= 1;
+          if (deletingCurrent) currentIndex = currentIndex % items.length;
+        }
+        saveItems();
+        renderList();
+        renderCurrent();
+      }
+
+      function clearAll() {
+        if (!confirm('确认清空所有备选项？')) return;
+        items = [];
+        pause();
+        currentIndex = -1;
+        saveItems();
+        renderList();
+        renderCurrent();
+      }
+
+      function renderList() {
+        if (items.length === 0) {
+          elList.innerHTML = '<div class="empty">暂无备选项，请添加。</div>';
+          return;
+        }
+        elList.innerHTML = '';
+        items.forEach((name, idx) => {
+          const row = document.createElement('div');
+          row.className = 'item';
+          const label = document.createElement('div');
+          label.className = 'item-name';
+          label.textContent = `${idx + 1}. ${name}`;
+          const del = document.createElement('button');
+          del.className = 'danger';
+          del.textContent = '删除';
+          del.addEventListener('click', () => deleteItem(idx));
+          row.appendChild(label);
+          row.appendChild(del);
+          elList.appendChild(row);
+        });
+      }
+
+      // 绑定事件
+      elStart.addEventListener('click', start);
+      elPause.addEventListener('click', pause);
+      elShuffle.addEventListener('click', shuffle);
+      elCustom.addEventListener('click', openModal);
+      elClose.addEventListener('click', closeModal);
+      elBackdrop.addEventListener('click', (e) => { if (e.target === elBackdrop) closeModal(); });
+      elAddBtn.addEventListener('click', addItem);
+      elAddInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addItem(); });
+      elClearBtn.addEventListener('click', clearAll);
+
+      // 初始渲染
+      renderList();
+      renderCurrent();
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('service-worker.js').catch(function(){});
+      });
+    }
+  </script>
+</body>
+</html> 
